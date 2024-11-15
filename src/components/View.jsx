@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { Row, Col } from 'react-bootstrap'
 import Videocard from './Videocard'
-import { getAllVideosAPI } from '../services/allAPI'
+import { getAllVideosAPI, saveVideoAPI, updateCategoryAPI } from '../services/allAPI'
 
-const View = ({addResponseFromHome,deleteResponseFromCategory}) => {
+const View = ({ addResponseFromHome, deleteResponseFromCategory, setDeleteResponseFromView }) => {
   const [allVideos, setAllVideos] = useState([])
-  const [deleteVideoResponseFromVideocard,setDeleteVideoResponseFromVideocard] = useState([])
+  const [deleteVideoResponseFromVideocard, setDeleteVideoResponseFromVideocard] = useState([])
 
   useEffect(() => {
     getAllVideos()
-  }, [addResponseFromHome,deleteVideoResponseFromVideocard,deleteResponseFromCategory])
+  }, [addResponseFromHome, deleteVideoResponseFromVideocard, deleteResponseFromCategory])
   console.log(allVideos);
 
   const getAllVideos = async () => {
@@ -24,9 +24,33 @@ const View = ({addResponseFromHome,deleteResponseFromCategory}) => {
 
     }
   }
+
+  const dragOverView = (e) => {
+    e.preventDefault()
+  }
+
+
+  const categoryVideodropOverView = async (e) => {
+    console.log("inside categoryVideodropOverView");
+    const { video, categoryDetails } = JSON.parse(e.dataTransfer.getData("dragData"))
+    console.log(video, categoryDetails);
+    const updatedCategoryVideoList = categoryDetails?.allVideos?.filter(item => item.id != video?.id)
+    const updatedCategory = { ...categoryDetails, allVideos: updatedCategoryVideoList }
+    console.log(updatedCategory);
+    // updating the category by delete video from category using api
+    const result = await updateCategoryAPI(updatedCategory)
+    // use state lifting to communicate data from view to category
+    setDeleteResponseFromView(result)
+    // use api to upload video
+    await saveVideoAPI(video)
+    // call getAllVideos function
+    getAllVideos()
+  }
+
+
   return (
     <>
-      <Row>
+      <Row droppable="true" onDragOver={dragOverView} onDrop={e => categoryVideodropOverView(e)}>
         {
           allVideos?.length > 0 ?
             allVideos?.map(video => (
